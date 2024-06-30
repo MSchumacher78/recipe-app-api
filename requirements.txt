@@ -6,3 +6,6 @@ djangorestframework>=3.12.4,<3.13
 
 # PostgreSQL Database
 psycopg2>=2.8.6,<2.9
+
+# OpenAPI 3.0 Documentation for the API
+drf-spectacular>=0.15.1,<0.16
