@@ -1,34 +1,35 @@
-#Base Image
+# Basis-Image für den Container
 FROM python:3.9-alpine3.13
 
-#Maintainer
+# Wer ist für die Wartung zuständig
 LABEL maintainer="TEST"
 
-#Direct Output from Python to the Screen / No Buffering
+# Direkte Ausgabe auf dem Bildschirm
+# Keine Pufferung
 ENV PYTHONUNBUFFERED 1
 
-#Copy neccessary project-files into the Container
+# Alle Dateien in den Container kopieren
 COPY ./requirements.txt /tmp/requirements.txt
 COPY ./requirements.dev.txt /tmp/requirements.dev.txt
+COPY ./scripts /scripts
 COPY ./app /app
 
-#Define starting directory
+# Start-Verzeichnis festlegen
 WORKDIR /app
 
-#Set Port
+# Port Festlegen
 EXPOSE 8000
 
-# Will be overwritten by Docker Compose
-# If in Development Environment then install dev-requirements too
+# Kann von Docker Compose überschrieben werden
+# Installiere im Entwicklungsmodus auch die Dev-Abhängigkeiten
 ARG DEV=false
 
-#Pipe commands to prevent creating Layer for every single command
-# Oneline if Statement if [ "$DEV" = "true" ]; then /py/bin/pip install -r /tmp/requirements.dev.txt ; fi && \
+# Hänge die Befehle aneinander - So wird nur eine neue Ebene im Docker-Container erstellt
 RUN python -m venv /py && \
     /py/bin/pip install --upgrade pip && \
     apk add --update --no-cache postgresql-client jpeg-dev && \
     apk add --update --no-cache --virtual .tmp-build-deps \
-        build-base postgresql-dev musl-dev zlib zlib-dev && \
+        build-base postgresql-dev musl-dev zlib zlib-dev linux-headers && \
     /py/bin/pip install -r /tmp/requirements.txt && \
     if [ "$DEV" = "true" ]; \
         then /py/bin/pip install -r /tmp/requirements.dev.txt ; \
@@ -42,9 +43,14 @@ RUN python -m venv /py && \
     mkdir -p /vol/web/media && \
     mkdir -p /vol/web/static && \
     chown -R django-user:django-user /vol && \
-    chmod -R 755 /vol
+    chmod -R 755 /vol && \
+    chmod -R +x /scripts
 
-ENV PATH="/py/bin:$PATH"
+# Pfad zur virtuellen Umgebung hinzufügen
+ENV PATH="/scripts:/py/bin:$PATH"
 
-#For security reasons - dont use the rootaccess
+# Den Django-User verwenden
 USER django-user
+
+# Den Default-Skript verwenden für uWSGI-Produktions-Server
+CMD ["run.sh"]
